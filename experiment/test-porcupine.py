@@ -1,13 +1,23 @@
 #!/usr/bin/python3
 # Built using Python 3.7.7
 """
+Testing the PicoVoice "porcupine" module for Wake Words.
 
+To end the spate of ALSA warnings/errors that scroll by at startup, you must:
+	$ sudo nano /usr/share/alsa/alsa.conf
+	- Then edit out  lines that look like "pcm.front cards.pcm.front", or
+	  change them to default, for example "pcm.front cards.pcm.default",
+	  to match your actual hardware.
+
+The audio reader is low CPU usage, so even though this has a constant primary loop
+the CPU use is ~11% according to htop. No need to sleep, in other words.
 """
 
 import sys
 import os
 import struct
 from datetime import datetime
+from time import sleep
 
 import pyaudio
 from threading import Thread
@@ -101,6 +111,8 @@ class VoiceScanLoop(Thread):
 							input_device_index=self._input_device_index)
 				elif num_keywords > 1 and result >= 0:
 					print('[%s] detected %s' % (str(datetime.now()), keyword_names[result]))
+
+
 
 		except KeyboardInterrupt:
 			print('stopping ...')
