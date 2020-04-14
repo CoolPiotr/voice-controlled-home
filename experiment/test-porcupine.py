@@ -56,7 +56,7 @@ class VoiceScanLoop(Thread):
 		self.sensitivities = sensitivities
 		self._output_path = output_path
 		self._input_device_index = input_device_index
-	
+
 	def run(self):
 		"""
 		Creates an input audio stream, initializes wake word detection (Porcupine) object, and monitors the audio
@@ -72,14 +72,14 @@ class VoiceScanLoop(Thread):
 		audio_stream = None
 		pa = None
 		porcupine = None
-		
+
 		try:
 			porcupine = Porcupine(
 				library_path=self.library_path,
 				model_file_path=self.model_file_path,
 				keyword_file_paths=self.keyword_file_paths,
 				sensitivities=self.sensitivities)
-			
+
 			pa = pyaudio.PyAudio()
 			audio_stream = pa.open(
 				rate=porcupine.sample_rate,
@@ -98,6 +98,10 @@ class VoiceScanLoop(Thread):
 				#    self._recorded_frames.append(pcm)
 
 				result = porcupine.process(pcm)
+				if result > -1:
+					print('[%s] detected %s' % (str(datetime.now()), keyword_names[result]))
+
+
 				if num_keywords == 1 and result:
 					print('[%s] detected keyword' % str(datetime.now()))
 					audio_stream.close()
@@ -110,7 +114,8 @@ class VoiceScanLoop(Thread):
 							frames_per_buffer=porcupine.frame_length,
 							input_device_index=self._input_device_index)
 				elif num_keywords > 1 and result >= 0:
-					print('[%s] detected %s' % (str(datetime.now()), keyword_names[result]))
+					#print('[%s] detected %s' % (str(datetime.now()), keyword_names[result]))
+					pass
 
 
 
@@ -129,7 +134,7 @@ class VoiceScanLoop(Thread):
 			if self._output_path is not None and len(self._recorded_frames) > 0:
 				recorded_audio = np.concatenate(self._recorded_frames, axis=0).astype(np.int16)
 				soundfile.write(self._output_path, recorded_audio, samplerate=porcupine.sample_rate, subtype='PCM_16')
-		
+
 
 
 
