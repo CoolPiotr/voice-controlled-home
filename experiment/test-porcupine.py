@@ -4,10 +4,24 @@
 
 """
 
-import porcupine
-import pyaudio
+import sys
+import os
+import struct
+from datetime import datetime
 
-pvporcupine.create(keywords=pvporcupine.KEYWORDS)
+import pyaudio
+from threading import Thread
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../../porcupine/binding/python'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../../porcupine/resources/util/python'))
+
+from pvporcupine import Porcupine
+from util import *
+
+#pvporcupine.create(keywords=pvporcupine.KEYWORDS)
+
+#print(KEYWORDS)
+#print(KEYWORD_FILE_PATHS)
 
 
 
@@ -30,6 +44,8 @@ class VoiceScanLoop(Thread):
 		self.model_file_path = model_file_path
 		self.keyword_file_paths = keyword_file_paths
 		self.sensitivities = sensitivities
+		self._output_path = output_path
+		self._input_device_index = input_device_index
 	
 	def run(self):
 		"""
@@ -37,21 +53,22 @@ class VoiceScanLoop(Thread):
 		stream for occurrences of the wake word(s). It prints the time of detection for each occurrence and index of
 		wake word.
 		"""
-		'''
-        num_keywords = len(self._keyword_file_paths)
 
-        keyword_names = list()
-        for x in self._keyword_file_paths:
-            keyword_names.append(os.path.basename(x).replace('.ppn', '').replace('_compressed', '').split('_')[0])
-		'''
+		keyword_names = list()
+		for x in self.keyword_file_paths:
+			keyword_names.append(os.path.basename(x).replace('.ppn', '').replace('_compressed', '').split('_')[0])
+		num_keywords = len(self.keyword_file_paths)
+
+		audio_stream = None
+		pa = None
 		porcupine = None
 		
 		try:
 			porcupine = Porcupine(
-				library_path=self._library_path,
-				model_file_path=self._model_file_path,
-				keyword_file_paths=self._keyword_file_paths,
-				sensitivities=self._sensitivities)
+				library_path=self.library_path,
+				model_file_path=self.model_file_path,
+				keyword_file_paths=self.keyword_file_paths,
+				sensitivities=self.sensitivities)
 			
 			pa = pyaudio.PyAudio()
 			audio_stream = pa.open(
@@ -82,8 +99,8 @@ class VoiceScanLoop(Thread):
 							input=True,
 							frames_per_buffer=porcupine.frame_length,
 							input_device_index=self._input_device_index)
-					elif num_keywords > 1 and result >= 0:
-						print('[%s] detected %s' % (str(datetime.now()), keyword_names[result]))
+				elif num_keywords > 1 and result >= 0:
+					print('[%s] detected %s' % (str(datetime.now()), keyword_names[result]))
 
 		except KeyboardInterrupt:
 			print('stopping ...')
@@ -105,7 +122,10 @@ class VoiceScanLoop(Thread):
 
 
 def main():
+	keyword_file_paths = [KEYWORD_FILE_PATHS[x] for x in ["bumblebee","porcupine"]]
+	sensitivities = [0.5] * len(keyword_file_paths)
 	VoiceScanLoop(
+		LIBRARY_PATH, MODEL_FILE_PATH, keyword_file_paths, sensitivities
 	).run()
 
 
