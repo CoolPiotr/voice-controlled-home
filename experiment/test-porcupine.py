@@ -19,6 +19,8 @@ import struct
 from datetime import datetime
 from time import sleep
 
+import numpy
+import soundfile
 import pyaudio
 from threading import Thread
 
@@ -56,6 +58,9 @@ class VoiceScanLoop(Thread):
 		self.sensitivities = sensitivities
 		self._output_path = output_path
 		self._input_device_index = input_device_index
+
+		if self._output_path is not None:
+			self._recorded_frames = []
 
 	def run(self):
 		"""
@@ -95,7 +100,7 @@ class VoiceScanLoop(Thread):
 				pcm = struct.unpack_from("h" * porcupine.frame_length, pcm)
 
 				#if self._output_path is not None:
-				#    self._recorded_frames.append(pcm)
+				#	self._recorded_frames.append(pcm)
 
 				result = porcupine.process(pcm)
 				if result > -1:
@@ -114,8 +119,9 @@ class VoiceScanLoop(Thread):
 							frames_per_buffer=porcupine.frame_length,
 							input_device_index=self._input_device_index)
 				elif num_keywords > 1 and result >= 0:
+					#self._recorded_frames.append(pcm)
 					#print('[%s] detected %s' % (str(datetime.now()), keyword_names[result]))
-					pass
+					break
 
 
 
@@ -132,7 +138,7 @@ class VoiceScanLoop(Thread):
 				pa.terminate()
 
 			if self._output_path is not None and len(self._recorded_frames) > 0:
-				recorded_audio = np.concatenate(self._recorded_frames, axis=0).astype(np.int16)
+				recorded_audio = numpy.concatenate(self._recorded_frames, axis=0).astype(numpy.int16)
 				soundfile.write(self._output_path, recorded_audio, samplerate=porcupine.sample_rate, subtype='PCM_16')
 
 
@@ -142,7 +148,7 @@ def main():
 	keyword_file_paths = [KEYWORD_FILE_PATHS[x] for x in ["bumblebee","porcupine"]]
 	sensitivities = [0.5] * len(keyword_file_paths)
 	VoiceScanLoop(
-		LIBRARY_PATH, MODEL_FILE_PATH, keyword_file_paths, sensitivities
+		LIBRARY_PATH, MODEL_FILE_PATH, keyword_file_paths, sensitivities, output_path="snip.wav"
 	).run()
 
 
