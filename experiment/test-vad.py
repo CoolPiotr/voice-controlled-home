@@ -101,8 +101,11 @@ class VADAudio(Audio):
     """Filter & segment audio with voice activity detection."""
 
     def __init__(self, aggressiveness=3, device=None, input_rate=None, file=None):
+		print("Initializaing VADAudio object now")
         super().__init__(device=device, input_rate=input_rate, file=file)
+		print("Just finished super().__init__ as Audio class"
         self.vad = webrtcvad.Vad(aggressiveness)
+		print("Just finished creating a webrtcvad.Vad() object")
 
     def frame_generator(self):
         """Generator that yields all audio frames from microphone."""
@@ -147,3 +150,31 @@ class VADAudio(Audio):
                     triggered = False
                     yield None
                     ring_buffer.clear()
+
+def main():
+	vad_audio = VADAudio(aggressiveness=3,
+		device=None,
+		input_rate=16000,
+		file=None)
+
+	frames = vad_audio.vad_collector()
+	print("Opened 'frames', the vad_audio.vad_collector() object")
+
+	spinner = Halo(spinner='line')
+	wav_data = bytearray()
+	for frame in frames:
+		if frame is not None:
+			if spinner: spinner.start()
+			logging.debug("streaming frame")
+			wav_data.extend(frame)
+		else:
+			if spinner: spinner.stop()
+			logging.debug("end utterence")
+			print("FRAME is None; ending utterance")
+			if True:
+				vad_audio.write_wav(os.path.join("audio", datetime.now().strftime("savewav_%Y-%m-%d_%H-%M-%S_%f.wav")), wav_data)
+				wav_data = bytearray()
+
+					
+if __name__ == '__main__':
+    main()
